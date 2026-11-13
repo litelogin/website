@@ -19,9 +19,9 @@ Then open <http://localhost:8000>.
 
 ## Publish
 
-1. Push to `https://github.com/litelogin/website`. GitHub Pages serves it at `https://litelogin.github.io/website/` (every link on the page is relative, so the subpath works).
+1. Push to `https://github.com/litelogin/website`. GitHub Pages serves it at `https://litelogin.com` (set by the `CNAME` file; `https://litelogin.github.io/website/` redirects there).
 2. In the repository's **Settings → Pages**, set the source to **Deploy from a branch**, branch `main`, folder `/ (root)`.
-3. For a custom domain, add a `CNAME` file containing the domain (for example `litelogin.dev`) and set the DNS records GitHub describes.
+3. DNS for litelogin.com is hosted at DigitalOcean: `A`/`AAAA` records for the apex point at GitHub Pages, and `www` is a `CNAME` to `litelogin.github.io`.
 4. Set the main repository's **Website** field to the page's URL.
 
 ## Keeping it accurate
