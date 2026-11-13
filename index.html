@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LiteLogin — serverless OAuth 2.1 and OpenID Connect identity provider</title>
+  <meta name="description" content="LiteLogin is an open-source, multi-tenant OAuth 2.1 and OpenID Connect identity provider that runs entirely on AWS Lambda, DynamoDB and KMS. Self-hosted authentication without authentication servers.">
+  <meta name="keywords" content="serverless identity provider, self-hosted OIDC provider, AWS serverless authentication, serverless OAuth2 provider, Auth0 alternative, Cognito alternative, open source">
+  <meta property="og:title" content="LiteLogin — authentication without authentication servers">
+  <meta property="og:description" content="An open-source OAuth 2.1 and OpenID Connect identity provider. Deploy it to your AWS account. Pay for what you use. Manage nothing but your application.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="theme-color" content="#0b0f17" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta property="og:image" content="logo.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="LiteLogin home">
+      <img src="logo.png" class="logo" alt="" width="32" height="32">
+      <span>LiteLogin</span>
+    </a>
+    <nav aria-label="Sections">
+      <a href="#architecture">Architecture</a>
+      <a href="#features">Features</a>
+      <a href="#cost">Cost</a>
+      <a href="#quickstart">Quickstart</a>
+      <a href="#security">Security</a>
+    </nav>
+    <a class="btn btn-small" href="https://github.com/litelogin/litelogin">GitHub</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow"><span class="pill">pre-1.0</span> Open source · MIT · Go</p>
+        <h1>Authentication without authentication servers.</h1>
+        <p class="lede">An open-source OAuth&nbsp;2.1 and OpenID Connect identity provider. Deploy it to your AWS account. Pay for what you use. Manage nothing but your application.</p>
+        <div class="cta">
+          <a class="btn" href="#quickstart">Deploy it</a>
+          <a class="btn btn-ghost" href="https://github.com/litelogin/litelogin">View on GitHub</a>
+        </div>
+        <ul class="stack" aria-label="Built on">
+          <li>Lambda</li><li>DynamoDB</li><li>KMS</li><li>CloudFront</li><li>WAF</li><li>SES</li>
+        </ul>
+      </div>
+      <div class="terminal" aria-label="Deploying LiteLogin">
+        <div class="terminal-bar"><span></span><span></span><span></span></div>
+<pre><code><span class="c"># clone and deploy to your own AWS account</span>
+<span class="p">$</span> git clone https://github.com/litelogin/litelogin
+<span class="p">$</span> cd litelogin
+<span class="p">$</span> scripts/deploy.sh prod --domain login.example.com
+
+<span class="c"># create an org and an app</span>
+<span class="p">$</span> dist/litelogin init --org "Acme" \
+    --client "Acme Portal" \
+    --redirect-uri https://app.acme.com/callback
+
+<span class="o">issuer         https://acme.login.example.com
+client_id      …
+client_secret  …</span></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- What you don't run -->
+  <section class="band">
+    <div class="wrap">
+      <h2 class="section-title">A complete identity provider, built from serverless parts</h2>
+      <p class="section-lede">LiteLogin isn't an auth API in front of someone else's identity service, and it isn't a conventional identity server squeezed into a container. Every request is handled by a Lambda function, and all state lives in two on-demand DynamoDB tables.</p>
+      <div class="two-col">
+        <div class="card">
+          <h3>What you don't run</h3>
+          <ul class="checks no">
+            <li>Kubernetes, containers or VMs</li>
+            <li>An identity server to patch and upgrade</li>
+            <li>A PostgreSQL cluster, backups and failover</li>
+            <li>Capacity planning for traffic spikes</li>
+            <li>Compute that bills while nobody signs in</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>What you still own</h3>
+          <ul class="checks yes">
+            <li>The AWS account, its IAM and its security</li>
+            <li>Deployments and upgrades, via OpenTofu or Terraform</li>
+            <li>Service quotas: Lambda concurrency, SES production access</li>
+            <li>Monitoring, with the dashboards and alarms provided</li>
+            <li>The AWS bill, which is <a href="#cost">worked out in the open</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture -->
+  <section id="architecture">
+    <div class="wrap">
+      <h2 class="section-title">The architecture is the product</h2>
+      <p class="section-lede">Most identity providers hide their infrastructure behind an abstraction. LiteLogin's is a handful of AWS services you can read, audit and reason about, all deployed into your account by one set of OpenTofu/Terraform modules.</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 940 500" role="img" aria-labelledby="arch-title arch-desc">
+          <title id="arch-title">LiteLogin architecture</title>
+          <desc id="arch-desc">Browsers and apps reach CloudFront and WAF, which forward to the Auth Lambda. The Auth Lambda reads and writes the DynamoDB Sessions and Config tables, signs tokens with KMS and sends email with SES. Operators use the litelogin CLI to call the Admin Lambda over IAM SigV4, which writes the Config table. Config table changes stream to the Worker Lambda. EventBridge Scheduler triggers the Worker reconciler and the key-rotation Lambda, which rotates KMS signing keys.</desc>
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" class="arrowhead"/>
+            </marker>
+          </defs>
+
+          <g class="col-label">
+            <text x="20" y="30">Clients</text>
+            <text x="220" y="30">Edge</text>
+            <text x="450" y="30">Compute</text>
+            <text x="700" y="30">Data and keys</text>
+          </g>
+
+          <!-- edges -->
+          <g class="edge" marker-end="url(#arrow)">
+            <path d="M170 126 H214"/>
+            <path d="M390 126 H444"/>
+            <path d="M630 126 L694 76"/>
+            <path d="M630 126 L694 146"/>
+            <path d="M630 126 L694 216"/>
+            <path d="M630 126 L694 296"/>
+            <path d="M170 306 H444"/>
+            <path d="M630 316 H694"/>
+            <path d="M800 332 V386 H636"/>
+            <path d="M170 426 H300 V386 H444"/>
+            <path d="M300 426 V456 H444"/>
+            <path d="M630 456 H918 V146 H906"/>
+          </g>
+          <g class="edge-label">
+            <text x="307" y="298">IAM · SigV4</text>
+            <text x="808" y="366">stream</text>
+            <text x="760" y="448">rotate signing keys</text>
+          </g>
+
+          <!-- nodes -->
+          <g class="node client">
+            <rect x="20" y="100" width="150" height="52" rx="10"/>
+            <text x="95" y="122">Browser or app</text>
+            <text x="95" y="140" class="sub">any OIDC library</text>
+          </g>
+          <g class="node client">
+            <rect x="20" y="280" width="150" height="52" rx="10"/>
+            <text x="95" y="302">Operator</text>
+            <text x="95" y="320" class="sub">litelogin CLI</text>
+          </g>
+          <g class="node client">
+            <rect x="20" y="400" width="150" height="52" rx="10"/>
+            <text x="95" y="422">EventBridge</text>
+            <text x="95" y="440" class="sub">Scheduler</text>
+          </g>
+
+          <g class="node edgey">
+            <rect x="220" y="100" width="170" height="52" rx="10"/>
+            <text x="305" y="122">CloudFront + WAF</text>
+            <text x="305" y="140" class="sub">login hosts, custom domains</text>
+          </g>
+
+          <g class="node compute">
+            <rect x="450" y="100" width="180" height="52" rx="10"/>
+            <text x="540" y="122">Auth Lambda</text>
+            <text x="540" y="140" class="sub">sign-in pages, OAuth, OIDC</text>
+          </g>
+          <g class="node compute">
+            <rect x="450" y="280" width="180" height="52" rx="10"/>
+            <text x="540" y="302">Admin Lambda</text>
+            <text x="540" y="320" class="sub">IAM-authenticated API</text>
+          </g>
+          <g class="node compute">
+            <rect x="450" y="360" width="180" height="52" rx="10"/>
+            <text x="540" y="382">Worker Lambda</text>
+            <text x="540" y="400" class="sub">revocation, custom hosts</text>
+          </g>
+          <g class="node compute">
+            <rect x="450" y="430" width="180" height="52" rx="10"/>
+            <text x="540" y="452">Rotate Lambda</text>
+            <text x="540" y="470" class="sub">daily key rotation</text>
+          </g>
+
+          <g class="node data">
+            <rect x="700" y="50" width="200" height="52" rx="10"/>
+            <text x="800" y="72">DynamoDB · Sessions</text>
+            <text x="800" y="90" class="sub">sessions, codes, refresh tokens</text>
+          </g>
+          <g class="node data">
+            <rect x="700" y="120" width="200" height="52" rx="10"/>
+            <text x="800" y="142">KMS</text>
+            <text x="800" y="160" class="sub">keys never leave KMS</text>
+          </g>
+          <g class="node data">
+            <rect x="700" y="190" width="200" height="52" rx="10"/>
+            <text x="800" y="212">SES</text>
+            <text x="800" y="230" class="sub">verification, resets</text>
+          </g>
+          <g class="node data">
+            <rect x="700" y="280" width="200" height="52" rx="10"/>
+            <text x="800" y="302">DynamoDB · Config</text>
+            <text x="800" y="320" class="sub">orgs, pools, clients, hosts</text>
+          </g>
+        </svg>
+      </figure>
+
+      <div class="grid3">
+        <div>
+          <h3>Edge</h3>
+          <p>CloudFront terminates TLS for every login host and custom domain. WAF rate-limits per IP and applies AWS managed rules. A secret origin header means the Lambda can't be called around the WAF.</p>
+        </div>
+        <div>
+          <h3>Compute</h3>
+          <p>The Auth Lambda serves every browser and OIDC endpoint. Administration is a separate Lambda behind IAM, so management is never reachable from a login host. Background work runs from DynamoDB Streams, SQS and EventBridge.</p>
+        </div>
+        <div>
+          <h3>State and keys</h3>
+          <p>Two on-demand DynamoDB tables, with every access pattern <a href="https://github.com/litelogin/litelogin/blob/main/Datamodel.md">documented</a>. Signing keys are created in KMS and never leave it. Besides requests, only key rotation and a reconciler ever run.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="band">
+    <div class="wrap">
+      <h2 class="section-title">Feature-complete for sign-in</h2>
+      <p class="section-lede">Standards-based, so any OpenID Connect library works: point it at the issuer and it discovers the rest through <code>/.well-known/openid-configuration</code>.</p>
+      <div class="features">
+        <article class="card">
+          <h3>OAuth 2.1 and OpenID Connect</h3>
+          <ul>
+            <li>Authorization code flow, PKCE (<code>S256</code>) required by default</li>
+            <li>Refresh tokens rotated on every use, with reuse detection</li>
+            <li>Discovery, JWKS, <code>/userinfo</code>, RP-initiated logout</li>
+            <li>An issuer per login host</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Sign-in pages</h3>
+          <ul>
+            <li>Registration, email verification and password reset</li>
+            <li>Passkeys (WebAuthn)</li>
+            <li>Account settings: change password or email, manage passkeys, sign out everywhere</li>
+            <li>Per-host theming</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Multi-tenant by design</h3>
+          <ul>
+            <li>Orgs, user pools, clients and login hosts in one deployment</li>
+            <li>Single sign-on across the apps on a host</li>
+            <li>Default hosts like <code>acme.login.example.com</code></li>
+            <li>Custom domains like <code>login.acme.com</code>, with managed certificates</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Security</h3>
+          <ul>
+            <li>Signing keys that never leave KMS, rotated automatically</li>
+            <li>argon2id password hashing and account lockout</li>
+            <li>Immediate revocation of sessions and refresh tokens</li>
+            <li>Signed, reproducible Lambda packages</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Operations</h3>
+          <ul>
+            <li>A CLI over an IAM-authenticated Admin API; every command takes <code>-o json</code></li>
+            <li>OpenTofu/Terraform modules for the whole deployment</li>
+            <li>CloudWatch dashboards and alarms</li>
+            <li>One script to deploy, resume and upgrade</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Built for SaaS builders</h3>
+          <ul>
+            <li>Give each of your customers their own users and login domain</li>
+            <li>Many apps per org, with per-client redirect URIs, scopes and token lifetimes</li>
+            <li>Shared infrastructure, isolated tenants</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Compare -->
+  <section>
+    <div class="wrap">
+      <h2 class="section-title">Where it fits</h2>
+      <p class="section-lede">Your identity provider, in your AWS account, without the identity server.</p>
+      <div class="table-wrap">
+        <table class="compare">
+          <thead>
+            <tr><th></th><th>Self-hosted identity server</th><th class="hl">LiteLogin</th><th>Managed auth service</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Runs in</th><td>Your containers or VMs</td><td class="hl">Your AWS account, on Lambda</td><td>The vendor's cloud</td></tr>
+            <tr><th scope="row">Database</th><td>Usually PostgreSQL you operate</td><td class="hl">On-demand DynamoDB</td><td>Theirs</td></tr>
+            <tr><th scope="row">Idle compute cost</th><td>Always-on</td><td class="hl">Near zero</td><td>Per-user or per-tier pricing</td></tr>
+            <tr><th scope="row">Servers to patch</th><td>Yes</td><td class="hl">No</td><td>No</td></tr>
+            <tr><th scope="row">Source and data</th><td>Yours</td><td class="hl">Yours, MIT-licensed</td><td>Vendor's</td></tr>
+            <tr><th scope="row">Portability</th><td>Any cloud</td><td class="hl">AWS only</td><td>Vendor only</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cost -->
+  <section id="cost" class="band">
+    <div class="wrap">
+      <h2 class="section-title">Costs follow requests</h2>
+      <p class="section-lede">A small fixed monthly cost for WAF, KMS keys and monitoring, then a fraction of a cent per sign-in. Every number below is derived step by step, from measured DynamoDB units, KMS calls and Lambda duration, in <a href="https://github.com/litelogin/litelogin/blob/main/Cost.md">Cost.md</a>.</p>
+
+      <div class="cost-grid">
+        <div class="table-wrap">
+          <table class="cost">
+            <caption>Monthly AWS cost, us-east-1 list prices, 10 refreshes per sign-in</caption>
+            <thead><tr><th>Sign-ins a month</th><th>Lean</th><th>Full</th></tr></thead>
+            <tbody>
+              <tr><td>1,000</td><td>$5.60</td><td>$21.02</td></tr>
+              <tr><td>10,000</td><td>$7.05</td><td>$23.43</td></tr>
+              <tr><td>50,000</td><td>$13.50</td><td>$34.20</td></tr>
+              <tr><td>100,000</td><td class="muted">—</td><td>$47.66</td></tr>
+              <tr><td>1,000,000</td><td class="muted">—</td><td>$231.01</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="setups">
+          <div class="card">
+            <h3>Lean <span class="tag">up to ~65k sign-ins/month</span></h3>
+            <p>Uses CloudFront's free flat-rate plan, which includes the distribution, WAF and DNS zone. Default login hosts only, lighter monitoring. Fixed cost about $5.44 a month.</p>
+          </div>
+          <div class="card">
+            <h3>Full <span class="tag">any size</span></h3>
+            <p>Custom login domains, edge caching for discovery and JWKS, stricter WAF rules on credential endpoints, X-Ray, a dashboard and 15 alarms. Fixed cost about $20.74 a month.</p>
+          </div>
+          <p class="fine">Prices checked 2026-11-12, before AWS's free tier and taxes. Past roughly 100,000 sign-ins a month, requests dominate the bill, and refreshes cost more than sign-ins.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Performance -->
+  <section>
+    <div class="wrap">
+      <h2 class="section-title">Load-tested in the open</h2>
+      <p class="section-lede">50 sign-ins and 200 token refreshes per second for five minutes, through CloudFront, on a real deployment. No errors, no skipped arrivals, and no KMS, DynamoDB or Lambda throttling. <a href="https://github.com/litelogin/litelogin/blob/main/test/load/README.md">Method and results.</a></p>
+      <div class="stats">
+        <div class="stat"><span class="num">164<small>ms</small></span><span class="lbl">p99 password sign-in<br>(argon2id included)</span></div>
+        <div class="stat"><span class="num">114<small>ms</small></span><span class="lbl">p99 code-for-token<br>exchange</span></div>
+        <div class="stat"><span class="num">137<small>ms</small></span><span class="lbl">p99 refresh-token<br>rotation</span></div>
+        <div class="stat"><span class="num">19<small>ms</small></span><span class="lbl">p99 KMS signing,<br>server side</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quickstart -->
+  <section id="quickstart" class="band">
+    <div class="wrap">
+      <h2 class="section-title">From an empty AWS account to a working sign-in</h2>
+      <p class="section-lede">You need an AWS account used only for LiteLogin, a domain you can delegate to Route&nbsp;53 (such as <code>login.example.com</code>), OpenTofu or Terraform, Go and the AWS CLI. The first deploy takes about 30 minutes, mostly waiting for the certificate and CloudFront.</p>
+
+      <ol class="steps">
+        <li>
+          <h3>Deploy</h3>
+          <p><code>deploy.sh</code> shows every plan before applying it, tells you which NS records to add and waits for them, then checks the deployment. If it stops, run it again: it picks up where it left off. The same command upgrades later.</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre><code>git clone https://github.com/litelogin/litelogin && cd litelogin
+AWS_PROFILE=&lt;your profile&gt; scripts/deploy.sh prod --domain login.example.com</code></pre></div>
+        </li>
+        <li>
+          <h3>Create an org and an app</h3>
+          <p><code>init</code> prints an issuer URL, a client ID and a client secret.</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre><code>dist/litelogin init --org "Acme" --client "Acme Portal" \
+  --redirect-uri https://app.acme.com/callback</code></pre></div>
+        </li>
+        <li>
+          <h3>Sign in</h3>
+          <p>Point any OpenID Connect library at the issuer. Or test the whole flow from the CLI first, signing in through the browser as your app would.</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre><code>dist/litelogin client test &lt;client-id&gt;</code></pre></div>
+        </li>
+      </ol>
+
+      <div class="two-col alt">
+        <div class="card">
+          <h3>Deploy it with Claude Code</h3>
+          <p>The repository includes a <a href="https://claude.com/claude-code">Claude Code</a> skill. Open Claude Code in the repo and say <em>“deploy LiteLogin to my AWS account”</em>. It runs <code>deploy.sh</code>, brings you each decision (the account, the NS records, every plan before it's applied), and then helps with orgs, clients, troubleshooting, upgrades and removal.</p>
+        </div>
+        <div class="card">
+          <h3>Or try it locally first</h3>
+          <p>With Go and Docker, run the whole thing against DynamoDB Local:</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre><code>make local-up local-tables
+make run-auth &amp; make run-admin &amp;
+make cli</code></pre></div>
+          <p class="fine">Then follow the README's <a href="https://github.com/litelogin/litelogin#try-it-locally">Try it locally</a> section.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Security -->
+  <section id="security">
+    <div class="wrap">
+      <h2 class="section-title">An identity provider has to earn trust</h2>
+      <p class="section-lede">You'd be trusting LiteLogin with your users' credentials, so its design decisions, threats and accepted risks are all written down.</p>
+      <div class="grid3">
+        <a class="doc-link" href="https://github.com/litelogin/litelogin/blob/main/ThreatModel.md">
+          <h3>Threat model →</h3>
+          <p>Assets, trust boundaries, and each control checked against the code, with accepted risks and gaps called out.</p>
+        </a>
+        <a class="doc-link" href="https://github.com/litelogin/litelogin/blob/main/Architecture.md">
+          <h3>Architecture →</h3>
+          <p>Request routing, revocation guarantees, key rotation and why each AWS service was chosen.</p>
+        </a>
+        <a class="doc-link" href="https://github.com/litelogin/litelogin/blob/main/SECURITY.md">
+          <h3>Security policy →</h3>
+          <p>How to report a vulnerability. LiteLogin hasn't had an external penetration test yet.</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Status / roadmap -->
+  <section class="band">
+    <div class="wrap">
+      <h2 class="section-title">Honest status</h2>
+      <p class="section-lede">LiteLogin is pre-1.0: feature-complete for sign-in and load-tested, but expect breaking changes before 1.0. Here's what it doesn't do yet.</p>
+      <div class="roadmap">
+        <div><span class="dot"></span>TOTP multi-factor authentication</div>
+        <div><span class="dot"></span>Social sign-in (Google, GitHub, …)</div>
+        <div><span class="dot"></span>Integration examples for Go, React and Next.js</div>
+        <div><span class="dot"></span>A browser-based admin console</div>
+        <div><span class="dot"></span>Published OIDC conformance results</div>
+        <div><span class="dot"></span>An independent security review</div>
+        <div><span class="dot"></span>A stable 1.0 release</div>
+        <div><span class="dot"></span>SAML and SCIM enterprise provisioning</div>
+      </div>
+      <p class="fine center">Want to help with any of these? <a href="https://github.com/litelogin/litelogin/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> covers building, testing and the code layout.</p>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="final">
+    <div class="wrap center">
+      <h2>Own your authentication. Skip the servers.</h2>
+      <p class="section-lede">MIT-licensed, written in Go, deployed by OpenTofu or Terraform into your own AWS account.</p>
+      <div class="cta center">
+        <a class="btn" href="https://github.com/litelogin/litelogin">Star on GitHub</a>
+        <a class="btn btn-ghost" href="https://github.com/litelogin/litelogin/blob/main/SelfHosting.md">Read the self-hosting guide</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div class="brand"><img src="logo.png" class="logo" alt="" width="28" height="28"><span>LiteLogin</span></div>
+    <nav aria-label="Documentation">
+      <a href="https://github.com/litelogin/litelogin/blob/main/SelfHosting.md">Self-hosting</a>
+      <a href="https://github.com/litelogin/litelogin/blob/main/Architecture.md">Architecture</a>
+      <a href="https://github.com/litelogin/litelogin/blob/main/Datamodel.md">Data model</a>
+      <a href="https://github.com/litelogin/litelogin/blob/main/Cost.md">Cost</a>
+      <a href="https://github.com/litelogin/litelogin/blob/main/ThreatModel.md">Threat model</a>
+      <a href="https://github.com/litelogin/litelogin">GitHub</a>
+    </nav>
+    <p class="fine">MIT License · © 2026 The LiteLogin Authors. AWS and the AWS service names are trademarks of Amazon.com, Inc. LiteLogin is not affiliated with AWS.</p>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var code = btn.parentElement.querySelector('code').innerText;
+      if (!navigator.clipboard) return;
+      navigator.clipboard.writeText(code).then(function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      });
+    });
+  });
+</script>
+</body>
+</html>
