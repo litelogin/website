@@ -386,8 +386,8 @@ claude "Deploy LiteLogin to prod with my litelogin-prod AWS profile, using login
         </li>
         <li>
           <h3>Sign in</h3>
-          <p>Point any OpenID Connect library at the issuer. Or test the whole flow from the CLI first, signing in through the browser as your app would.</p>
-          <div class="code"><button class="copy" type="button">Copy</button><pre><code>dist/litelogin client test &lt;client-id&gt;</code></pre></div>
+          <p>Point any OpenID Connect library at the issuer: it finds the rest through discovery. To check the whole flow first, ask Claude Code. It runs <code>litelogin client test</code>, which opens your browser to sign in as your app would, then checks the code exchange, the ID token, <code>/userinfo</code> and a refresh.</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre><code>claude "Test a sign-in with the Acme Portal client"</code></pre></div>
         </li>
       </ol>
 
