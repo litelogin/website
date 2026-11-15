@@ -57,10 +57,13 @@
       </div>
       <div class="terminal" aria-label="Deploying LiteLogin">
         <div class="terminal-bar"><span></span><span></span><span></span></div>
-<pre><code><span class="c"># clone and deploy to your own AWS account</span>
+<pre><code><span class="c"># clone, then ask Claude Code to deploy it</span>
 <span class="p">$</span> git clone https://github.com/litelogin/litelogin
 <span class="p">$</span> cd litelogin
-<span class="p">$</span> scripts/deploy.sh prod --domain login.example.com
+<span class="p">$</span> claude "Deploy LiteLogin to prod with my
+    litelogin-prod AWS profile, using login.example.com"
+<span class="c"># it confirms the account, gives you the NS records
+# and shows every plan before applying it</span>
 
 <span class="c"># create an org and an app</span>
 <span class="p">$</span> dist/litelogin init --org "Acme" \
@@ -280,7 +283,7 @@ client_secret  …</span></code></pre>
             <li>A CLI over an IAM-authenticated Admin API; every command takes <code>-o json</code></li>
             <li>OpenTofu/Terraform modules for the whole deployment</li>
             <li>CloudWatch dashboards and alarms</li>
-            <li>One script to deploy, resume and upgrade</li>
+            <li>One script to deploy, resume and upgrade, and a Claude Code skill that runs it for you</li>
           </ul>
         </article>
         <article class="card">
@@ -330,9 +333,9 @@ client_secret  …</span></code></pre>
             <caption>Monthly AWS cost, us-east-1 list prices, 10 refreshes per sign-in</caption>
             <thead><tr><th>Sign-ins a month</th><th>Lean</th><th>Full</th></tr></thead>
             <tbody>
-              <tr><td>1,000</td><td>$5.60</td><td>$21.02</td></tr>
-              <tr><td>10,000</td><td>$7.05</td><td>$23.43</td></tr>
-              <tr><td>50,000</td><td>$13.50</td><td>$34.20</td></tr>
+              <tr><td>1,000</td><td>$4.60</td><td>$21.02</td></tr>
+              <tr><td>10,000</td><td>$6.05</td><td>$23.43</td></tr>
+              <tr><td>50,000</td><td>$12.50</td><td>$34.20</td></tr>
               <tr><td>100,000</td><td class="muted">—</td><td>$47.66</td></tr>
               <tr><td>1,000,000</td><td class="muted">—</td><td>$231.01</td></tr>
             </tbody>
@@ -341,11 +344,11 @@ client_secret  …</span></code></pre>
         <div class="setups">
           <div class="card">
             <h3>Lean <span class="tag">up to ~65k sign-ins/month</span></h3>
-            <p>Uses CloudFront's free flat-rate plan, which includes the distribution, WAF and DNS zone. Default login hosts only, lighter monitoring. Fixed cost about $5.44 a month.</p>
+            <p>Uses CloudFront's free flat-rate plan, which includes the distribution, WAF and DNS zone. Default login hosts only, lighter monitoring, and tables encrypted with DynamoDB's own key. Fixed cost about $4.44 a month.</p>
           </div>
           <div class="card">
             <h3>Full <span class="tag">any size</span></h3>
-            <p>Custom login domains, edge caching for discovery and JWKS, stricter WAF rules on credential endpoints, X-Ray, a dashboard and 15 alarms. Fixed cost about $20.74 a month.</p>
+            <p>Custom login domains, edge caching for discovery and JWKS, stricter WAF rules on credential endpoints, tables encrypted with a KMS key of your own, X-Ray, a dashboard and 15 alarms. Fixed cost about $20.74 a month.</p>
           </div>
           <p class="fine">Prices checked 2026-11-12, before AWS's free tier and taxes. Past roughly 100,000 sign-ins a month, requests dominate the bill, and refreshes cost more than sign-ins.</p>
         </div>
@@ -375,14 +378,14 @@ client_secret  …</span></code></pre>
 
       <ol class="steps">
         <li>
-          <h3>Deploy</h3>
-          <p><code>deploy.sh</code> shows every plan before applying it, tells you which NS records to add and waits for them, then checks the deployment. If it stops, run it again: it picks up where it left off. The same command upgrades later.</p>
+          <h3>Deploy with Claude Code</h3>
+          <p>The easiest way to deploy is with <a href="https://claude.com/claude-code">Claude Code</a>. The <code>litelogin</code> skill in the repository runs <code>scripts/deploy.sh</code> and brings you each decision: it shows the AWS account for you to confirm, gives you the NS records to add and checks the delegation, and summarizes every plan before applying exactly that plan. It names the AWS profile on every command, never falls back to the default one, and asks before anything destructive. When it's done, it runs <code>litelogin status</code> to check the deployment.</p>
           <div class="code"><button class="copy" type="button">Copy</button><pre><code>git clone https://github.com/litelogin/litelogin && cd litelogin
-AWS_PROFILE=&lt;your profile&gt; scripts/deploy.sh prod --domain login.example.com</code></pre></div>
+claude "Deploy LiteLogin to prod with my litelogin-prod AWS profile, using login.example.com"</code></pre></div>
         </li>
         <li>
           <h3>Create an org and an app</h3>
-          <p><code>init</code> prints an issuer URL, a client ID and a client secret.</p>
+          <p>Ask Claude Code (<em>“Create an org called Acme with a client for https://app.acme.com/callback”</em>), or use the CLI. Either way you get an issuer URL, a client ID and a client secret.</p>
           <div class="code"><button class="copy" type="button">Copy</button><pre><code>dist/litelogin init --org "Acme" --client "Acme Portal" \
   --redirect-uri https://app.acme.com/callback</code></pre></div>
         </li>
@@ -395,16 +398,19 @@ AWS_PROFILE=&lt;your profile&gt; scripts/deploy.sh prod --domain login.example.c
 
       <div class="two-col alt">
         <div class="card">
-          <h3>Deploy it with Claude Code</h3>
-          <p>The repository includes a <a href="https://claude.com/claude-code">Claude Code</a> skill. Open Claude Code in the repo and say <em>“deploy LiteLogin to my AWS account”</em>. It runs <code>deploy.sh</code>, brings you each decision (the account, the NS records, every plan before it's applied), and then helps with orgs, clients, troubleshooting, upgrades and removal.</p>
+          <h3>Without Claude Code</h3>
+          <p><code>deploy.sh</code> does the same steps from your terminal. If it stops, run it again: it continues where it left off. The same command upgrades later.</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre><code>AWS_PROFILE=&lt;your profile&gt; \
+  scripts/deploy.sh prod --domain login.example.com</code></pre></div>
+          <p class="fine"><a href="https://github.com/litelogin/litelogin/blob/main/SelfHosting.md">SelfHosting.md</a> has every step in full, including doing it all by hand.</p>
         </div>
         <div class="card">
           <h3>Or try it locally first</h3>
-          <p>With Go and Docker, run the whole thing against DynamoDB Local:</p>
+          <p>No AWS account needed. With Go and Docker, run LiteLogin against DynamoDB Local, then sign in with a password and a passkey. It takes about ten minutes.</p>
           <div class="code"><button class="copy" type="button">Copy</button><pre><code>make local-up local-tables
-make run-auth &amp; make run-admin &amp;
-make cli</code></pre></div>
-          <p class="fine">Then follow the README's <a href="https://github.com/litelogin/litelogin#try-it-locally">Try it locally</a> section.</p>
+make run-auth      # terminal 1
+make run-admin     # terminal 2</code></pre></div>
+          <p class="fine"><a href="https://github.com/litelogin/litelogin/blob/main/Local.md">Local.md</a> walks you through it.</p>
         </div>
       </div>
     </div>

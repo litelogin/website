@@ -296,3 +296,7 @@ table.cost td { font-family: var(--mono); font-size: .92rem; }
 .hero-grid > *, .cost-grid > *, .two-col > *, .steps > li, .features > *, .grid3 > * { min-width: 0; }
 
 .logo { border-radius: 22%; display: block; }
+
+/* code blocks never take the inline-code highlight; leave room for the Copy button */
+pre code { background: none !important; padding: 0 !important; border-radius: 0 !important; }
+.code pre { padding-right: 76px; }
