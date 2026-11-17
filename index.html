@@ -251,7 +251,8 @@
           <ul>
             <li>Registration, email verification and password reset</li>
             <li>Passkeys (WebAuthn)</li>
-            <li>Account settings: change password or email, manage passkeys, sign out everywhere</li>
+            <li>Two-factor sign-in with an authenticator app (TOTP), plus one-time recovery codes</li>
+            <li>Account settings: change password or email, manage passkeys and two-factor sign-in, sign out everywhere</li>
             <li>Per-host theming</li>
           </ul>
         </article>
@@ -269,6 +270,7 @@
           <ul>
             <li>Signing keys that never leave KMS, rotated automatically</li>
             <li>argon2id password hashing and account lockout</li>
+            <li>Two-factor sign-in that a pool can require, with TOTP secrets encrypted by KMS</li>
             <li>Immediate revocation of sessions and refresh tokens</li>
             <li>Signed, reproducible Lambda packages</li>
           </ul>
@@ -329,22 +331,22 @@
             <caption>Monthly AWS cost, us-east-1 list prices, 10 refreshes per sign-in</caption>
             <thead><tr><th>Sign-ins a month</th><th>Lean</th><th>Full</th></tr></thead>
             <tbody>
-              <tr><td>1,000</td><td>$4.60</td><td>$21.02</td></tr>
-              <tr><td>10,000</td><td>$6.05</td><td>$23.43</td></tr>
-              <tr><td>50,000</td><td>$12.50</td><td>$34.20</td></tr>
-              <tr><td>100,000</td><td class="muted">—</td><td>$47.66</td></tr>
-              <tr><td>1,000,000</td><td class="muted">—</td><td>$231.01</td></tr>
+              <tr><td>1,000</td><td>$5.60</td><td>$22.02</td></tr>
+              <tr><td>10,000</td><td>$7.05</td><td>$24.43</td></tr>
+              <tr><td>50,000</td><td>$13.50</td><td>$35.20</td></tr>
+              <tr><td>100,000</td><td class="muted">—</td><td>$48.66</td></tr>
+              <tr><td>1,000,000</td><td class="muted">—</td><td>$232.01</td></tr>
             </tbody>
           </table>
         </div>
         <div class="setups">
           <div class="card">
             <h3>Lean <span class="tag">up to ~65k sign-ins/month</span></h3>
-            <p>Uses CloudFront's free flat-rate plan, which includes the distribution, WAF and DNS zone. Default login hosts only, lighter monitoring, and tables encrypted with DynamoDB's own key. Fixed cost about $4.44 a month.</p>
+            <p>Uses CloudFront's free flat-rate plan, which includes the distribution, WAF and DNS zone. Default login hosts only, lighter monitoring, and tables encrypted with DynamoDB's own key. Fixed cost about $5.44 a month.</p>
           </div>
           <div class="card">
             <h3>Full <span class="tag">any size</span></h3>
-            <p>Custom login domains, edge caching for discovery and JWKS, stricter WAF rules on credential endpoints, tables encrypted with a KMS key of your own, X-Ray, a dashboard and 15 alarms. Fixed cost about $20.74 a month.</p>
+            <p>Custom login domains, edge caching for discovery and JWKS, stricter WAF rules on credential endpoints, tables encrypted with a KMS key of your own, X-Ray, a dashboard and 15 alarms. Fixed cost about $21.74 a month.</p>
           </div>
           <p class="fine">Prices checked 2026-11-12, before AWS's free tier and taxes. Past roughly 100,000 sign-ins a month, requests dominate the bill, and refreshes cost more than sign-ins.</p>
         </div>
@@ -442,8 +444,8 @@ make run-admin     # terminal 2</code></pre></div>
       <h2 class="section-title">Honest status</h2>
       <p class="section-lede">LiteLogin is pre-1.0: feature-complete for sign-in and load-tested, but expect breaking changes before 1.0. Here's what it doesn't do yet.</p>
       <div class="roadmap">
-        <div><span class="dot"></span>TOTP multi-factor authentication</div>
         <div><span class="dot"></span>Social sign-in (Google, GitHub, …)</div>
+        <div><span class="dot"></span>Passkey-only accounts, with no password</div>
         <div><span class="dot"></span>Integration examples for Go, React and Next.js</div>
         <div><span class="dot"></span>A browser-based admin console</div>
         <div><span class="dot"></span>Published OIDC conformance results</div>
